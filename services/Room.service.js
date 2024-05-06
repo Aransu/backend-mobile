@@ -165,4 +165,48 @@ const addImageToRoomService = async (req, res) => {
         }
     }
 }
-export { addRoomService, getRoomService, getRoomInfoService, addImageToRoomService }
+
+const addRoomFromStringService = async (req, res) => {
+    const { jsonString } = req.body;
+    const jsonObject = JSON.parse(jsonString);
+    console.log(jsonObject)
+    jsonObject.host_id = "663743116fa6671619d801f7"
+    const host = await User.findOne({ _id: jsonObject.host_id })
+    const newRoom = new Room({
+        name: jsonObject.name,
+        summary: jsonObject.summary,
+        transit: jsonObject.transit,
+        house_rules: jsonObject.house_rules,
+        host: host,
+        street: jsonObject.street,
+        smart_location: jsonObject.smart_location,
+        country: jsonObject.country,
+        latitude: jsonObject.latitude,
+        longitude: jsonObject.longitude,
+        room_type: jsonObject.room_type,
+        bathRooms: jsonObject.bathRooms,
+        bedRooms: jsonObject.bedRooms,
+        beds: jsonObject.beds,
+        price: jsonObject.price,
+        weekly_price: jsonObject.weekly_price,
+        thumbnail_urls: [],
+        created_at: Date.now()
+    });
+    await newRoom.save()
+    newRoom.thumbnail_urls.push(jsonObject.thumbnail_url)
+    await newRoom.save()
+    res.status(200).json({
+        Status: "SUCCESS"
+    })
+}
+
+const addImageUrlToRoom = async (req, res) => {
+    const { url, room_id } = req.body
+    const room = await Room.findOne({ _id: room_id })
+    room.thumbnail_urls.push(url)
+    await room.save()
+    res.status(200).json({
+        Status: "Success"
+    })
+}
+export { addImageUrlToRoom, addRoomService, getRoomService, getRoomInfoService, addImageToRoomService, addRoomFromStringService }
