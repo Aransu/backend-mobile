@@ -3,6 +3,8 @@ import User from "../models/user.model.js"
 import Reservations from "../models/reservations.model.js"
 import { v2 as cloudinary } from 'cloudinary'
 import fs from "fs"
+
+
 const addRoomService = async (req, res) => {
     const { name,
         summary,
