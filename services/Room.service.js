@@ -114,7 +114,6 @@ const getRoomInfoService = async (req, res) => {
             const startDate = new Date(reservation.start_date);
             const endDate = new Date(reservation.end_date);
             for (let date = startDate; date <= endDate; date.setDate(date.getDate() + 1)) {
-
                 if (date.getTime() >= today.getTime()) {
                     allDates.push(new Date(date));
                 }
