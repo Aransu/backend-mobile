@@ -1,4 +1,4 @@
-import { bookingService } from "../services/Booking.service.js";
+import { bookingService, getTripService, cancelTripService } from "../services/Booking.service.js";
 
 const booking = async (req, res) => {
     const { reservations } = await bookingService(req, res);
@@ -10,5 +10,58 @@ const booking = async (req, res) => {
         });
     }
 }
+const getTrip = async (req, res) => {
+    const { status, message, error, data } = await getTripService(req, res);
+    if (status === 200) {
+        res.status(status).json({
+            status,
+            message,
+            data
+        });
+    } else if (status === 400 && !error) {
+        res.status(status).json({
+            status,
+            message
+        });
+    } else if (error) {
+        res.status(status).json({
+            status,
+            message,
+            error
+        });
+    } else {
+        res.status(status).json({
+            status,
+            message
+        });
+    }
+};
 
-export { booking }
+const cancelTrip = async (req, res) => {
+    const { status, message, error, data } = await cancelTripService(req, res);
+    if (status === 200) {
+        res.status(status).json({
+            status,
+            message,
+            data
+        });
+    } else if (status === 400 && !error) {
+        res.status(status).json({
+            status,
+            message
+        });
+    } else if (error) {
+        res.status(status).json({
+            status,
+            message,
+            error
+        });
+    } else {
+        res.status(status).json({
+            status,
+            message
+        });
+    }
+};
+
+export { booking, getTrip, cancelTrip }
