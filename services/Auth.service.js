@@ -36,6 +36,7 @@ const registerService = async (req, res) => {
       phone_number,
       created_at: createdAt,
       update_at: createdAt,
+      isHost: false
     });
 
     const savedUser = await newUser.save();

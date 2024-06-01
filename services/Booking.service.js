@@ -41,41 +41,46 @@ const bookingService = async (req, res) => {
         return { reservations: null }
     }
 }
-
 const getTripService = async (req, res) => {
     try {
         const { user_id } = req.query;
         if (!user_id) {
-            return {
+            return res.status(400).json({
                 status: 400,
                 message: "Missing fields"
-            };
+            });
         }
 
-        const trip = await reservations.find({ user_id: user_id });
-        const updatedTrip = await Promise.all(trip.map(async e => {
-            const room = await roomModel.findOne({ _id: e.room_id });
-            return { ...e.toObject(), room };
-        }));
-        if (!trip || trip.length === 0) {
-            return {
+        const trips = await reservations.find({ user_id }).lean();
+        if (!trips || trips.length === 0) {
+            return res.status(200).json({
                 status: 200,
                 message: "Trip is empty",
                 data: []
-            };
+            });
         }
 
-        return {
+        const updatedTrips = await Promise.all(trips.map(async trip => {
+            const room = await roomModel.findOne({ _id: trip.room_id }).lean();
+            return { ...trip, room };
+        }));
+
+        const addedUserTrips = await Promise.all(updatedTrips.map(async trip => {
+            const user = await User.findOne({ _id: trip.user_id }).lean();
+            return { ...trip, user };
+        }));
+
+        return ({
             status: 200,
             message: "SUCCESS",
-            data: updatedTrip
-        };
+            data: addedUserTrips
+        });
     } catch (err) {
-        return {
+        return ({
             status: 500,
             message: "An error occurred",
             error: err.message
-        };
+        });
     }
 };
 

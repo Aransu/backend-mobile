@@ -7,7 +7,7 @@ const roomSchema = new mongoose.Schema({
     transit: String,
     house_rules: String,
     thumbnail_urls: [String],
-    host: Object,
+    host_id: String,
     street: String,
     smart_location: String,
     country: String,

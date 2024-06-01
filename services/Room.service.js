@@ -33,13 +33,21 @@ const addRoomService = async (req, res) => {
     // }
     try {
         const host = await User.findOne({ _id: host_id })
+        if (!host) {
+            return ({
+                status: 404,
+                message: "HOST NOT FOUND"
+            })
+        }
+        host.isHost = true;
+        await host.save();
         console.log(host)
         const newRoom = new Room({
             name,
             summary,
             transit,
             house_rules,
-            host,
+            host_id,
             street,
             smart_location,
             country,
@@ -70,8 +78,7 @@ const addRoomService = async (req, res) => {
         }
     }
 }
-
-const getRoomService = async (req, res) => {
+const getRoomService = async (req) => {
     try {
         const { room_type, smart_location, min_price, max_price, is_sort_price } = req.query;
         const query = {};
@@ -80,32 +87,42 @@ const getRoomService = async (req, res) => {
         if (smart_location) query.smart_location = smart_location;
         if (min_price || max_price) {
             query.price = {}; // Tạo một object trống cho trường price
-            if (min_price) query.price.$gte = min_price;
-            if (max_price) query.price.$lte = max_price;
+            if (min_price) query.price.$gte = Number(min_price);
+            if (max_price) query.price.$lte = Number(max_price);
         }
 
         console.log(query);
         let result = await Room.find(query);
 
-        if (is_sort_price == "ASC") result.sort({ price: 1 });
-        else if (is_sort_price == "DESC") result.sort({ price: -1 });
+        if (is_sort_price === "ASC") result = result.sort((a, b) => a.price - b.price);
+        else if (is_sort_price === "DESC") result = result.sort((a, b) => b.price - a.price);
+
+        const updatedRoom = await Promise.all(result.map(async e => {
+            const host = await User.findOne({ _id: e.host_id });
+            return { ...e.toObject(), host };
+        }));
 
         return {
             status: 200,
             message: "SUCCESS",
-            rooms: result
+            rooms: updatedRoom
         };
+    } catch (err) {
+        return {
+            status: 400,
+            message: "An error occurred",
+            err: err.message
+        };
+    }
+};
 
-    }
-    catch (err) {
-        return { err: err.message, status: 400, message: "An error occur" }
-    }
-}
+
 
 const getRoomInfoService = async (req, res) => {
     const { room_id } = req.query
     try {
         const room = await Room.findOne({ _id: room_id })
+        room.host = await User.findOne({ _id: room.host_id })
         const booked = await Reservations.find({ room: room })
         let allDates = [Date];
         allDates.shift();
@@ -119,7 +136,9 @@ const getRoomInfoService = async (req, res) => {
                 }
             }
         })
-        return { room, allDates, status: 200, message: "SUCCESS" }
+        const host = await User.findOne({ _id: room.host_id });
+        const updatedRoom = { ...room.toObject(), host };
+        return { room: updatedRoom, allDates, status: 200, message: "SUCCESS" }
     }
     catch (err) {
         return {
