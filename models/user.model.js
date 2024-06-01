@@ -35,7 +35,8 @@ const UserSchema = new mongoose.Schema({
     },
     profile_image: {
         type: String
-    }
+    },
+    isHost: Boolean
 })
 
 export default mongoose.model('users', UserSchema)
