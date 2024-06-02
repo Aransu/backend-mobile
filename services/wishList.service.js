@@ -2,7 +2,7 @@
 import roomModel from "../models/room.model.js";
 import userModel from "../models/user.model.js";
 import WishList from "../models/wishList.model.js";
-
+import User from "../models/user.model.js";
 const addToWishListService = async (req, res) => {
     const { user_id, room_id } = req.body;
     if (!user_id || !room_id) {
@@ -24,6 +24,14 @@ const addToWishListService = async (req, res) => {
             user_id,
             room_id
         })
+        const wishLists = await WishList.find({ user_id })
+        const existsWishList = wishLists.some(wishList => wishList.room_id === room_id);
+        console.log(existsWishList)
+        if (existsWishList)
+            return ({
+                status: 409,
+                message: "CONFLICT"
+            })
         await wishList.save();
         return ({
             status: 201,
@@ -49,7 +57,7 @@ const getWishListService = async (req, res) => {
     }
 
     try {
-        const wishLists = await WishList.find({ user_id });
+        const wishLists = await WishList.find({ user_id }).lean();
 
         if (wishLists.length === 0) {
             return {
@@ -57,11 +65,21 @@ const getWishListService = async (req, res) => {
                 message: "No wish lists found for this user"
             };
         }
+        const updatedWishLists = await Promise.all(wishLists.map(async wishList => {
+            const room = await roomModel.findOne({ _id: wishList.room_id }).lean();
+            return { ...wishList, room };
+        }));
+
+        const addedUserWishLists = await Promise.all(updatedWishLists.map(async wishList => {
+            const user = await User.findOne({ _id: wishList.user_id }).lean();
+            console.log(wishList.user_id)
+            return { ...wishList, user };
+        }));
 
         return {
             status: 200,
             message: "Success",
-            data: wishLists
+            data: addedUserWishLists
         };
     } catch (err) {
         return {
