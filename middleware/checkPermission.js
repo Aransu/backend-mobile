@@ -5,6 +5,11 @@ dotenv.config()
 const { JWT_KEY } = process.env;
 export const checkPermission = async (req, res, next) => {
     try {
+        if (!req.header('authorization')) {
+            return res.status(400).json({
+                message: "Missing token"
+            })
+        }
         const token = req.header('authorization').split(" ")[1];
         if (!token) {
             return res.status(403).json({

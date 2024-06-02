@@ -23,6 +23,12 @@ const addToWishList = async (req, res) => {
             error
         })
     }
+    else if (status == 409) {
+        res.status(status).json({
+            status,
+            message
+        })
+    }
 }
 
 

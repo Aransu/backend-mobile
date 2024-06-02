@@ -45,7 +45,7 @@ const getTripService = async (req, res) => {
     try {
         const { user_id } = req.query;
         if (!user_id) {
-            return res.status(400).json({
+            return ({
                 status: 400,
                 message: "Missing fields"
             });
@@ -53,7 +53,7 @@ const getTripService = async (req, res) => {
 
         const trips = await reservations.find({ user_id }).lean();
         if (!trips || trips.length === 0) {
-            return res.status(200).json({
+            return ({
                 status: 200,
                 message: "Trip is empty",
                 data: []
