@@ -13,7 +13,7 @@ Room routes:
 - POST /room/addRoom (name,summary,transit,house_rules,host_id,street,smart_location,country,latitude,longitude,room_type,bathRooms,bedRooms,beds,price,weekly_price) -> add room
 - POST /room/addImageToRoom (image(file), room_id) -> add image to room
 - GET /room/getRoomInfo (room_id) -> get info of the room
-- GET /room/getRoom (room_type, smart_location, min_price, max_price, is_sort_price) -> search for rooms
+- GET /room/getRoom (room_type, smart_location, min_price, max_price, is_sort_price, start_date) -> search for rooms
 
 User route:
 - GET user/host(user_id) -> get user's owned rooms
