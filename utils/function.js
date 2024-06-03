@@ -16,5 +16,7 @@ const generateRandomPassword = () => {
   }
   return result;
 }
-
-export { generateRandomFiveDigitNumberAsString, generateRandomPassword }
+function removeDiacritics(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+export { generateRandomFiveDigitNumberAsString, generateRandomPassword, removeDiacritics }

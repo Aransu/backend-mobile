@@ -2,6 +2,7 @@ import Room from "../models/room.model.js"
 import User from "../models/user.model.js"
 import Reservations from "../models/reservations.model.js"
 import { v2 as cloudinary } from 'cloudinary'
+import { removeDiacritics } from "../utils/function.js"
 import fs from "fs"
 
 
@@ -41,7 +42,6 @@ const addRoomService = async (req, res) => {
         }
         host.isHost = true;
         await host.save();
-        console.log(host)
         const newRoom = new Room({
             name,
             summary,
@@ -78,34 +78,76 @@ const addRoomService = async (req, res) => {
         }
     }
 }
+
+
+
 const getRoomService = async (req) => {
     try {
-        const { room_type, smart_location, min_price, max_price, is_sort_price } = req.query;
+        const { room_type, smart_location, min_price, max_price, is_sort_price, start_date } = req.query;
         const query = {};
 
         if (room_type) query.room_type = room_type;
-        if (smart_location) query.smart_location = smart_location;
         if (min_price || max_price) {
-            query.price = {}; // Tạo một object trống cho trường price
+            query.price = {};
             if (min_price) query.price.$gte = Number(min_price);
             if (max_price) query.price.$lte = Number(max_price);
         }
 
-        console.log(query);
-        let result = await Room.find(query);
 
-        if (is_sort_price === "ASC") result = result.sort((a, b) => a.price - b.price);
-        else if (is_sort_price === "DESC") result = result.sort((a, b) => b.price - a.price);
+        let roomQuery = Room.find(query);
 
-        const updatedRoom = await Promise.all(result.map(async e => {
-            const host = await User.findOne({ _id: e.host_id });
-            return { ...e.toObject(), host };
+        if (is_sort_price === "ASC") roomQuery = roomQuery.sort({ price: 1 });
+        else if (is_sort_price === "DESC") roomQuery = roomQuery.sort({ price: -1 });
+        let result = await roomQuery.exec();
+        if (smart_location) {
+            result = result.filter(room =>
+                removeDiacritics(room.smart_location.toLowerCase())
+                    .includes(removeDiacritics(smart_location.toLowerCase()))
+            );
+        }
+        let filteredResult = [];
+        if (start_date) {
+            for (let i = 0; i < result.length; i++) {
+                let isBooked = false; // Biến để kiểm tra xem phòng đã được đặt trong khoảng thời gian cụ thể chưa
+                const booked = await Reservations.find({ room_id: result[i]._id.toString() });
+                for (let reservation of booked) {
+                    const startDate = new Date(reservation.start_date);
+                    const endDate = new Date(reservation.end_date);
+                    const parts = start_date.split("/");
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    const day = parseInt(parts[2], 10);
+                    const date = new Date(year, month, day);
+                    const futureDate = new Date(date);
+                    futureDate.setDate(date.getDate() + 1);
+
+                    // Kiểm tra xem lượt đặt phòng nằm trong khoảng thời gian của start_date và futureDate hay không
+                    if (startDate <= futureDate && endDate >= date) {
+                        isBooked = true;
+                        break;
+                    }
+                }
+                // Nếu phòng không được đặt trong khoảng thời gian của start_date và futureDate, thêm vào filteredResult
+                if (!isBooked) {
+                    filteredResult.push(result[i]);
+                }
+            }
+        }
+
+
+
+        const updatedRooms = await Promise.all((start_date ? filteredResult : result).map(async room => {
+            if (room.host_id) {
+                const host = await User.findOne({ _id: room.host_id });
+
+                return { ...room.toObject(), host };
+            }
         }));
 
         return {
             status: 200,
             message: "SUCCESS",
-            rooms: updatedRoom
+            rooms: updatedRooms
         };
     } catch (err) {
         return {
@@ -118,12 +160,14 @@ const getRoomService = async (req) => {
 
 
 
+
+
 const getRoomInfoService = async (req, res) => {
     const { room_id } = req.query
     try {
         const room = await Room.findOne({ _id: room_id })
         room.host = await User.findOne({ _id: room.host_id })
-        const booked = await Reservations.find({ room: room })
+        const booked = await Reservations.find({ room_id: room_id })
         let allDates = [Date];
         allDates.shift();
         const today = new Date();
@@ -189,7 +233,6 @@ const addImageToRoomService = async (req, res) => {
 const addRoomFromStringService = async (req, res) => {
     const { jsonString } = req.body;
     const jsonObject = JSON.parse(jsonString);
-    console.log(jsonObject)
     jsonObject.host_id = "663743116fa6671619d801f7"
     const host = await User.findOne({ _id: jsonObject.host_id })
     const newRoom = new Room({

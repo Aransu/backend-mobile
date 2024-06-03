@@ -20,27 +20,29 @@ const addRoom = async (req, res) => {
 
 const getRoom = async (req, res) => {
     const { rooms, err, message, status } = await getRoomService(req, res);
-    if (Array.isArray(rooms) && rooms.length > 0) {
-        res.status(status).json({
-            status: status,
-            message: message,
-            rooms: rooms
-        })
-    }
-    else {
-        res.status(404).json({
-            status: 404,
-            message: "No rooms found"
-        })
-    }
-    if (status == 400) {
-        res.status(status).json({
+
+    if (status === 400) {
+        return res.status(status).json({
             status: status,
             message: message,
             error: err
-        })
+        });
+    }
+
+    if (Array.isArray(rooms) && rooms.length > 0) {
+        return res.status(status).json({
+            status: status,
+            message: message,
+            rooms: rooms
+        });
+    } else {
+        return res.status(404).json({
+            status: 404,
+            message: "No rooms found"
+        });
     }
 }
+
 
 const getRoomInfo = async (req, res) => {
     const { room, allDates, status, message, error } = await getRoomInfoService(req, res);
