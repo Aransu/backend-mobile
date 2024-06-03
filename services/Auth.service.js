@@ -79,7 +79,7 @@ const loginService = async (req, res) => {
           },
           process.env.JWT_KEY,
           {
-            expiresIn: "6h",
+            expiresIn: "365d",
           }
         );
         data.password = undefined;
