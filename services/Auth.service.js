@@ -36,6 +36,7 @@ const registerService = async (req, res) => {
       phone_number,
       created_at: createdAt,
       update_at: createdAt,
+      profile_image: 'https://api.dicebear.com/7.x/lorelei/png',
       isHost: false
     });
 
