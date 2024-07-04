@@ -1,4 +1,4 @@
-import { bookingService, getTripService, cancelTripService } from "../services/Booking.service.js";
+import { bookingService, getTripService, cancelTripService, momoPaymentService } from "../services/Booking.service.js";
 
 const booking = async (req, res) => {
     const { reservations } = await bookingService(req, res);
@@ -64,4 +64,8 @@ const cancelTrip = async (req, res) => {
     }
 };
 
-export { booking, getTrip, cancelTrip }
+const momoPayment = async (req, res) => {
+    await momoPaymentService(req, res)
+}
+
+export { booking, getTrip, cancelTrip, momoPayment }
