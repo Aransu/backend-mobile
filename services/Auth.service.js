@@ -57,7 +57,7 @@ const registerService = async (req, res) => {
 const loginService = async (req, res) => {
   try {
     const { email, password } = req.body;
-
+    console.log("call login")
     if (email == "" || password == "") {
       res.status(400).json({
         status: 400,

@@ -33,6 +33,7 @@ const getHostedRoomService = async (req, res) => {
 const updateService = async (req, res) => {
     const { id } = req.body
     const file = req.files.file.tempFilePath
+    console.log("Update Profile")
     let image = "";
     try {
         const result = await cloudinary.uploader.upload(

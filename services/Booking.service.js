@@ -5,6 +5,7 @@ import roomModel from "../models/room.model.js";
 import crypto from 'crypto';
 import https from 'https';
 import axios from "axios";
+import { ObjectId } from "mongodb";
 const bookingService = async (req, res) => {
     try {
         const { user_id, room_id, start_date, end_date } = req.body;
@@ -32,6 +33,7 @@ const bookingService = async (req, res) => {
             total,
             created_at: createdAt
         })
+
         await newReservations.save();
         return { reservations: newReservations }
     } catch (err) {
@@ -123,17 +125,20 @@ const cancelTripService = async (req, res) => {
 
 
 const momoPaymentService = async (req, res) => {
-    const { order_id, total } = req.body;
+    const { reserve_id } = req.body;
+    console.log(reserve_id)
     const accessKey = "F8BBA842ECF85";
     const secretKey = "K951B6PE1waDMi640xX08PD3vg6EkVlz";
     const orderInfo = "Thanh toán tiền phòng";
     const partnerCode = "MOMO";
-    const partnerName = "The Coffee Shop C22";
+    const partnerName = "Airbnb clone";
     const redirectUrl = "https://momo.vn";
-    const ipnUrl = "https://2ddd-125-235-239-154.ngrok-free.app/api/v1/booking/callback";
+    const ipnUrl = "https://2158-2405-4802-a392-4a20-6c52-d905-12cc-247d.ngrok-free.app/booking/callback";
     const requestType = "captureWallet";
-    const amount = total;
-    const orderId = partnerCode + new Date().getTime();
+    let reservation = await reservations.findOne({ _id: (reserve_id) })
+    console.log(reservation.total * 24000)
+    const amount = 500000;
+    const orderId = reserve_id;
     const requestId = orderId;
     const extraData = ""; // Empty string if there is no extra data
     const orderGroupId = ""; // Optional field, if not required, leave it as an empty string
@@ -150,8 +155,8 @@ const momoPaymentService = async (req, res) => {
         .createHmac("sha256", secretKey)
         .update(rawSignature)
         .digest("hex");
-    console.log("--------------------SIGNATURE----------------");
-    console.log(signature);
+    // console.log("--------------------SIGNATURE----------------");
+    // console.log(signature);
 
     // JSON object to send to MoMo endpoint
     const requestBody = {
@@ -168,12 +173,13 @@ const momoPaymentService = async (req, res) => {
         requestType: requestType,
         autoCapture: autoCapture,
         extraData: extraData,
+        sourceCurrency: "USD",
         orderGroupId: orderGroupId,
         signature: signature,
     };
 
-    console.log("--------------------REQUEST BODY----------------");
-    console.log(requestBody);
+    // console.log("--------------------REQUEST BODY----------------");
+    // console.log(requestBody);
 
     const options = {
         method: "POST",
@@ -200,9 +206,29 @@ const momoPaymentService = async (req, res) => {
     }
 }
 const callBackService = async (req, res) => {
-    console.log("callback: "),
-        console.log(req.body);
-    return res.status(200).json(req.body);
+    const { orderId, resultCode } = req.body;
+
+    try {
+        if (resultCode == 0) {
+            console.log("callback: ")
+            console.log(req.body)
+            let reservation = await reservations.findOne({ _id: orderId })
+            reservation.payed = true;
+            await reservation.save();
+            return res.status(200).json(req.body);
+        }
+        else {
+            console.log(req.body)
+            console.log("FAiled")
+        }
+    }
+    catch (err) {
+        return res.status(400).json({
+            status: 400,
+            message: "Server error",
+            error: err.message
+        });
+    }
 }
 
 
