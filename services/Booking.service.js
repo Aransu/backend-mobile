@@ -2,6 +2,10 @@ import reservations from "../models/reservations.model.js";
 import User from '../models/user.model.js'
 import Room from '../models/room.model.js'
 import roomModel from "../models/room.model.js";
+import crypto from 'crypto';
+import https from 'https';
+import axios from "axios";
+import { ObjectId } from "mongodb";
 const bookingService = async (req, res) => {
     try {
         const { user_id, room_id, start_date, end_date } = req.body;
@@ -29,6 +33,7 @@ const bookingService = async (req, res) => {
             total,
             created_at: createdAt
         })
+
         await newReservations.save();
         return { reservations: newReservations }
     } catch (err) {
@@ -116,4 +121,115 @@ const cancelTripService = async (req, res) => {
         };
     }
 };
-export { bookingService, getTripService, cancelTripService };
+
+
+
+const momoPaymentService = async (req, res) => {
+    const { reserve_id } = req.body;
+    console.log(reserve_id)
+    const accessKey = "F8BBA842ECF85";
+    const secretKey = "K951B6PE1waDMi640xX08PD3vg6EkVlz";
+    const orderInfo = "Thanh toán tiền phòng";
+    const partnerCode = "MOMO";
+    const partnerName = "Airbnb clone";
+    const redirectUrl = "https://momo.vn";
+    const ipnUrl = "https://2158-2405-4802-a392-4a20-6c52-d905-12cc-247d.ngrok-free.app/booking/callback";
+    const requestType = "captureWallet";
+    let reservation = await reservations.findOne({ _id: (reserve_id) })
+    console.log(reservation.total * 24000)
+    const amount = 500000;
+    const orderId = reserve_id;
+    const requestId = orderId;
+    const extraData = ""; // Empty string if there is no extra data
+    const orderGroupId = ""; // Optional field, if not required, leave it as an empty string
+    const autoCapture = true;
+    const lang = "vi";
+
+    // Generate raw signature
+    const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
+    console.log("--------------------RAW SIGNATURE----------------");
+    console.log(rawSignature);
+
+    // Create signature using HMAC SHA256
+    const signature = crypto
+        .createHmac("sha256", secretKey)
+        .update(rawSignature)
+        .digest("hex");
+    // console.log("--------------------SIGNATURE----------------");
+    // console.log(signature);
+
+    // JSON object to send to MoMo endpoint
+    const requestBody = {
+        partnerCode: partnerCode,
+        partnerName: partnerName,
+        storeId: "MomoTestStore",
+        requestId: requestId,
+        amount: amount,
+        orderId: orderId,
+        orderInfo: orderInfo,
+        redirectUrl: redirectUrl,
+        ipnUrl: ipnUrl,
+        lang: lang,
+        requestType: requestType,
+        autoCapture: autoCapture,
+        extraData: extraData,
+        sourceCurrency: "USD",
+        orderGroupId: orderGroupId,
+        signature: signature,
+    };
+
+    // console.log("--------------------REQUEST BODY----------------");
+    // console.log(requestBody);
+
+    const options = {
+        method: "POST",
+        url: "https://test-payment.momo.vn/v2/gateway/api/create",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        data: requestBody,
+    };
+
+    try {
+        const result = await axios(options);
+        return res.json({
+            status: "success",
+            data: result.data,
+        });
+    } catch (error) {
+        console.error(error.response ? error.response.data : error.message);
+        return res.json({
+            status: "error",
+            msg: "server error",
+            error: error.response ? error.response.data : error.message,
+        });
+    }
+}
+const callBackService = async (req, res) => {
+    const { orderId, resultCode } = req.body;
+
+    try {
+        if (resultCode == 0) {
+            console.log("callback: ")
+            console.log(req.body)
+            let reservation = await reservations.findOne({ _id: orderId })
+            reservation.payed = true;
+            await reservation.save();
+            return res.status(200).json(req.body);
+        }
+        else {
+            console.log(req.body)
+            console.log("FAiled")
+        }
+    }
+    catch (err) {
+        return res.status(400).json({
+            status: 400,
+            message: "Server error",
+            error: err.message
+        });
+    }
+}
+
+
+export { bookingService, getTripService, cancelTripService, momoPaymentService, callBackService };

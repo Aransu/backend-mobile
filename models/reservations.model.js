@@ -26,6 +26,10 @@ const RevservationsSchema = new mongoose.Schema({
     },
     created_at: {
         type: Date
+    },
+    payed: {
+        type: Boolean,
+        default: false
     }
 
 
